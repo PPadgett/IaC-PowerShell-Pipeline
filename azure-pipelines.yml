@@ -1,0 +1,40 @@
+resources:
+  pipelines:
+    - pipeline: FirstPipeline  # Arbitrary name for the resource, used in conditions
+      source: 'Build-PowerShell-FirstPipeline'  # Please ensure you're using the exact name of the pipeline as it appears in Azure DevOps GUI under Pipelines.
+      trigger: true   # Automatically trigger when the FirstPipeline completes
+
+trigger: none  # Disables automatic pipeline triggering from commits
+
+pool:
+  vmImage: 'windows-latest'  # Use Windows VM image
+
+stages:
+- stage: CollectAndVerifyArtifacts
+  jobs:
+  - job: VerifyArtifacts
+    steps:
+    - checkout: self
+      displayName: 'Checkout Code'
+    
+    # Download artifacts from the FirstPipeline
+    - download: FirstPipeline
+      artifact: drop
+      displayName: 'Download Artifacts from First Pipeline: Build-IaC-Pipeline-PowerShell'
+
+    - pwsh: |
+        Write-Host "Listing log files from the first pipeline..."
+        # List log files
+        Get-ChildItem -Path "$(Pipeline.Workspace)\FirstPipeline\drop\logs" -Recurse
+      displayName: 'List Log Files'
+
+    # Additional debug step to verify pipeline resource trigger
+    - pwsh: |
+        $pipelineName = "$(resources.pipeline.FirstPipeline.pipelineName)"
+        $pipelineRunId = "$(resources.pipeline.FirstPipeline.runId)"
+        $pipelineSourceBranch = "$(resources.pipeline.FirstPipeline.sourceBranch)"
+        Write-Host "Pipeline resource trigger details:"
+        Write-Host "Pipeline Name: $pipelineName"
+        Write-Host "Run ID: $pipelineRunId"
+        Write-Host "Source Branch: $pipelineSourceBranch"
+      displayName: 'Debug Pipeline Resource Trigger'

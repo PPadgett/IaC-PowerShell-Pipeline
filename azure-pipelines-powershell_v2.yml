@@ -1,0 +1,330 @@
+trigger:
+  branches:
+    include:
+      - main       # Trigger on changes to the "main" branch.
+      - develop    # Trigger on changes to the "develop" branch.
+      - feature/*  # Trigger on any branch starting with "feature/".
+      - bugfix/*
+      - hotfix/*
+      - release/*
+
+pool:
+  vmImage: 'windows-latest'
+
+resources:
+  repositories:
+    - repository: SyntaxAnalyzer # This is the alias used in the YAML file
+      type: git
+      name: 'IaC-PowerShell-SyntaxAnalyzer'  # Azure DevOps repo path
+      endpoint: PSAutomationHub             # Service connection name
+      ref: refs/heads/main                  # Branch to checkout
+    - repository: PSScriptAnalyzerWrapper
+      type: git
+      name: 'IaC-PowerShell-PSScriptAnalyzerWrapper'
+      endpoint: PSAutomationHub
+      ref: refs/heads/main
+    - repository: PesterTestsPs1Audit
+      type: git
+      name: 'IaC-Pester-AssertionAudit'
+      endpoint: PSAutomationHub
+      ref: refs/heads/main
+    - repository: PesterWrapper
+      type: git
+      name: 'IaC-PowerShell-PesterWrapper'
+      endpoint: PSAutomationHub
+      ref: refs/heads/main
+    - repository: ReadMeAnalyzer
+      type: git
+      name: 'IaC-PowerShell-ReadMeAnalyzer'
+      endpoint: PSAutomationHub
+      ref: refs/heads/main
+
+jobs:
+  - job: MainJob
+    displayName: 'Code Testing'
+    steps:
+      - checkout: self
+        displayName: 'Checkout Main Branch'
+
+      - checkout: SyntaxAnalyzer  # Use the alias here
+        displayName: 'Checkout Syntax Analyzer Repository'
+        persistCredentials: true
+
+      - checkout: PSScriptAnalyzerWrapper  # Use the alias here
+        displayName: 'Checkout PSScriptAnalyzerWrapper Repository'
+        persistCredentials: true
+
+      - checkout: PesterTestsPs1Audit  # Use the alias here
+        displayName: 'Checkout Pester AssertionAudit Repository'
+        persistCredentials: true
+
+      - checkout: PesterWrapper  # Use the alias here
+        displayName: 'Checkout PesterWrapper Repository'
+        persistCredentials: true
+
+      - checkout: ReadMeAnalyzer  # Use the alias here
+        displayName: 'Checkout ReadMeAnalyzer Repository'
+        persistCredentials: true
+
+      - pwsh: |
+          # Define the list of PowerShell modules
+          $modules = @('PSScriptAnalyzer', 'Pester')
+
+          # Check and install PowerShell modules using ForEach-Object
+          $modules | ForEach-Object {
+              if (-not (Get-Module -ListAvailable -Name $_)) {
+                  Install-Module -Name $_ -Force -Scope CurrentUser
+                  Write-Output "Installed PowerShell module: $_"
+              } else {
+                  Write-Output "PowerShell module $_ is already installed."
+              }
+          }
+
+          # Define the list of .NET global tools
+          $tools = @('dotnet-reportgenerator-globaltool')
+
+          # Get the list of installed .NET global tools
+          $toolList = dotnet tool list --global
+
+          # Check and install .NET global tools using ForEach-Object
+          $tools | ForEach-Object {
+              if (-not ($toolList -match $_)) {
+                  dotnet tool install --global $_
+                  Write-Output "Installed .NET global tool: $_"
+              } else {
+                  Write-Output ".NET global tool $_ is already installed."
+              }
+          }
+
+        displayName: 'Install Required Modules and Tools'
+
+      - pwsh: |
+          # Ensure we are in the right directory
+          Push-Location "$(Build.SourcesDirectory)\IaC-PowerShell-SyntaxAnalyzer"
+          
+          # Configure Git for sparse checkout
+          git config core.sparseCheckout true
+          
+          # Create sparse-checkout file and specify the file to checkout
+          "Invoke-SyntaxAnalyzer.ps1" | Out-File -FilePath .git\info\sparse-checkout -Encoding ASCII
+          
+          # Perform the checkout
+          git read-tree -mu HEAD
+
+          # Return to the original directory
+          Pop-Location
+        displayName: 'Sparse Checkout of Specific File: Invoke-SyntaxAnalyzer.ps1'
+        workingDirectory: '$(Build.SourcesDirectory)\IaC-PowerShell-SyntaxAnalyzer'
+
+      - pwsh: |
+          # Ensure we are in the right directory
+          Push-Location "$(Build.SourcesDirectory)\IaC-PowerShell-PSScriptAnalyzerWrapper"
+          
+          # Configure Git for sparse checkout
+          git config core.sparseCheckout true
+          
+          # Create sparse-checkout file and specify the file to checkout
+          "Invoke-PSLint.ps1" | Out-File -FilePath .git\info\sparse-checkout -Encoding ASCII
+          
+          # Perform the checkout
+          git read-tree -mu HEAD
+
+          # Return to the original directory
+          Pop-Location
+        displayName: 'Sparse Checkout of Specific File: Invoke-PSLint.ps1'
+        workingDirectory: '$(Build.SourcesDirectory)\IaC-PowerShell-PSScriptAnalyzerWrapper'
+
+      - pwsh: |
+          # Ensure we are in the right directory
+          Push-Location "$(Build.SourcesDirectory)\IaC-Pester-AssertionAudit"
+          
+          # Configure Git for sparse checkout
+          git config core.sparseCheckout true
+          
+          # Create sparse-checkout file and specify the file to checkout
+          "Invoke-PTAssertionAudit.ps1" | Out-File -FilePath .git\info\sparse-checkout -Encoding ASCII
+          
+          # Perform the checkout
+          git read-tree -mu HEAD
+
+          # Return to the original directory
+          Pop-Location
+        displayName: 'Sparse Checkout of Specific File: Invoke-PTAssertionAudit.ps1'
+        workingDirectory: '$(Build.SourcesDirectory)\IaC-Pester-AssertionAudit'
+
+      - pwsh: |
+          # Ensure we are in the right directory
+          Push-Location "$(Build.SourcesDirectory)\IaC-PowerShell-PesterWrapper"
+          
+          # Configure Git for sparse checkout
+          git config core.sparseCheckout true
+          
+          # Create sparse-checkout file and specify the file to checkout
+          "Invoke-PTUnit.ps1" | Out-File -FilePath .git\info\sparse-checkout -Encoding ASCII
+          
+          # Perform the checkout
+          git read-tree -mu HEAD
+
+          # Return to the original directory
+          Pop-Location
+        displayName: 'Sparse Checkout of Specific File: Invoke-PTUnit.ps1'
+        workingDirectory: '$(Build.SourcesDirectory)\IaC-PowerShell-PesterWrapper'
+
+      - pwsh: |
+          # Ensure we are in the right directory
+          Push-Location "$(Build.SourcesDirectory)\IaC-PowerShell-ReadMeAnalyzer"
+          
+          # Configure Git for sparse checkout
+          git config core.sparseCheckout true
+          
+          # Create sparse-checkout file and specify the file to checkout
+          "Invoke-ReadMeAnalyzer.ps1" | Out-File -FilePath .git\info\sparse-checkout -Encoding ASCII
+          
+          # Perform the checkout
+          git read-tree -mu HEAD
+
+          # Return to the original directory
+          Pop-Location
+        displayName: 'Sparse Checkout of Specific File: Invoke-ReadMeAnalyzer.ps1'
+        workingDirectory: '$(Build.SourcesDirectory)\IaC-PowerShell-ReadMeAnalyzer'
+
+      # **Debugging Step: List All Files Using tree /F**
+      # - pwsh: |
+      #     Write-Host "Listing all files and directories under $(Build.SourcesDirectory):"
+      #     tree /F "$(Build.SourcesDirectory)"
+      #   displayName: 'List All Files and Directories Using tree /F'
+
+      - task: PowerShell@2
+        displayName: 'Checking Syntax: Syntax Analyzer'
+        inputs:
+          targetType: 'filePath'
+          filePath: '$(Build.SourcesDirectory)\IaC-PowerShell-SyntaxAnalyzer\Invoke-SyntaxAnalyzer.ps1'
+          arguments: '-Path "$(Build.SourcesDirectory)" -BypassError -Recurse -LogFile "$(Build.Repository.LocalPath)\SyntaxResults.log"'
+          errorActionPreference: 'stop'
+          failOnStderr: true
+
+      - task: PowerShell@2
+        displayName: 'Checking Lint: PS Script Analyzer'
+        inputs:
+          targetType: 'filePath'
+          filePath: '$(Build.SourcesDirectory)\IaC-PowerShell-PSScriptAnalyzerWrapper\Invoke-PSLint.ps1'
+          arguments: '-Path "$(Build.SourcesDirectory)" -BypassError -Recurse -LogFile "$(Build.Repository.LocalPath)\LintResults.log"'
+          errorActionPreference: 'stop'
+          failOnStderr: true
+
+      - task: PowerShell@2
+        displayName: 'Running Pester Assertion Audit on TestsPs1 Files: PesterTestsPs1Audit'
+        inputs:
+          targetType: 'filePath'
+          filePath: '$(Build.SourcesDirectory)\IaC-Pester-AssertionAudit\Invoke-PTAssertionAudit.ps1'
+          arguments: '-Path "$(Build.SourcesDirectory)" -BypassError -Recurse -LogFile "$(Build.Repository.LocalPath)\AduitTestPs1Results.log"'
+          errorActionPreference: 'stop'
+          failOnStderr: true
+
+      - task: PowerShell@2
+        displayName: 'Running Mock Tests: PesterWrapper'
+        condition: succeeded()
+        inputs:
+          targetType: 'filePath'
+          filePath: '$(Build.SourcesDirectory)\IaC-PowerShell-PesterWrapper\Invoke-PTUnit.ps1'
+          arguments: '-Path "$(Build.SourcesDirectory)" -BypassError -Recurse -TagFilter Mock -CoverageOutputFile "$(Build.Repository.LocalPath)\MockCode.xml" -LogFile "$(Build.Repository.LocalPath)\MockResults.log"'
+          errorActionPreference: 'stop'
+          failOnStderr: true
+
+      - task: PowerShell@2
+        displayName: 'Running Unit Tests: PesterWrapper'
+        condition: succeeded()
+        inputs:
+          targetType: 'filePath'
+          filePath: '$(Build.SourcesDirectory)\IaC-PowerShell-PesterWrapper\Invoke-PTUnit.ps1'
+          arguments: '-Path "$(Build.SourcesDirectory)" -BypassError -Recurse -TagFilter SandBox -CoverageOutputFile "$(Build.Repository.LocalPath)\UnitCode.xml" -LogFile "$(Build.Repository.LocalPath)\UnitResults.log"'
+          errorActionPreference: 'stop'
+          failOnStderr: true
+
+      - task: PowerShell@2
+        displayName: 'Checking Readme file: ReadMeAnalyzer'
+        inputs:
+          targetType: 'filePath'
+          filePath: '$(Build.SourcesDirectory)\IaC-PowerShell-ReadMeAnalyzer\Invoke-ReadMeAnalyzer.ps1'
+          arguments: '-Path "$(Build.SourcesDirectory)" -BypassError -Recurse -LogFile "$(Build.Repository.LocalPath)\ReadMeAnalyzeResults.log"'
+          errorActionPreference: 'stop'
+          failOnStderr: true
+
+      # Consolidate code coverage results
+      - pwsh: |
+          # Check if ReportGenerator is installed
+          $installed = dotnet tool list --global | Select-String "reportgenerator"
+          if (-not $installed) {
+              Write-Host "Installing the latest version of ReportGenerator..."
+              dotnet tool install --global dotnet-reportgenerator-globaltool
+          }
+          else {
+              Write-Host "Updating ReportGenerator to the latest version..."
+              dotnet tool update --global dotnet-reportgenerator-globaltool
+          }
+
+          # Add dotnet tools path to the PATH environment variable
+          $env:PATH += ";$([System.Environment]::GetFolderPath('UserProfile'))\.dotnet\tools"
+
+          # Define paths to coverage files
+          $coverageFiles = @(
+              "$(Build.SourcesDirectory)\MockCode_Coverage.xml",
+              "$(Build.SourcesDirectory)\UnitCode_Coverage.xml"
+          )
+          $consolidatedCoverageFile = "$(Build.SourcesDirectory)\ConsolidatedCodeCoverage.xml"
+
+          # Check if coverage files exist
+          $missingFiles = $coverageFiles | Where-Object { -Not (Test-Path $_) }
+          if ($missingFiles) {
+              Write-Error "The following coverage files do not exist: $missingFiles"
+              exit 1
+          }
+
+          # Join the coverage files with semicolon for reportgenerator
+          $coverageFilesJoined = [string]::Join(';', $coverageFiles)
+
+          # Run ReportGenerator to merge the coverage files
+          reportgenerator -reports:$coverageFilesJoined -targetdir:$(Build.SourcesDirectory) -reporttypes:Cobertura
+
+        displayName: 'Consolidate Code Coverage Results'
+
+      # Publish code coverage results to Azure DevOps
+      - task: PublishCodeCoverageResults@2
+        displayName: 'Publish Code Coverage Results'
+        inputs:
+          summaryFileLocation: '$(Build.SourcesDirectory)\Cobertura.xml'
+          failIfCoverageEmpty: true
+
+
+      # Copy Results and logs to the artifact staging directory
+      - pwsh: |
+          $artifactPath = "$(Build.ArtifactStagingDirectory)\drop"
+          $logsDestination = "$artifactPath\logs"
+
+          # Ensure directories exist
+          New-Item -ItemType Directory -Force -Path $artifactPath, $logsDestination
+
+          # Path to the log files
+          $LogsPath = "$(Build.SourcesDirectory)\*Results*.log"
+
+          # Copy the pipeline logs
+          Copy-Item -Path $LogsPath -Destination $logsDestination -Recurse -Force
+
+          # List copied log files for verification
+          ls $logsDestination
+        displayName: 'Copy Pipeline Results to Artifact Staging Directory'
+
+      # Publish build artifacts to be used by the primary pipeline
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts for Primary Pipeline'
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)\drop'
+          ArtifactName: 'drop'
+          publishLocation: 'Container'
+
+      # Verify artifact contents
+      - pwsh: |
+          Write-Host "Verifying published artifacts..."
+          $artifactPath = "$(Build.ArtifactStagingDirectory)\drop"
+          Get-ChildItem -Path $artifactPath -Recurse
+        displayName: 'Verify Published Artifacts'
