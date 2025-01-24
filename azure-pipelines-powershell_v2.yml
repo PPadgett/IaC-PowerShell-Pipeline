@@ -16,27 +16,27 @@ resources:
     - repository: SyntaxAnalyzer # This is the alias used in the YAML file
       type: git
       name: 'IaC-PowerShell-SyntaxAnalyzer'  # Azure DevOps repo path
-      endpoint: PSAutomationHub             # Service connection name
+      endpoint: NameGoesHere             # Service connection name
       ref: refs/heads/main                  # Branch to checkout
     - repository: PSScriptAnalyzerWrapper
       type: git
       name: 'IaC-PowerShell-PSScriptAnalyzerWrapper'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
     - repository: PesterTestsPs1Audit
       type: git
       name: 'IaC-Pester-AssertionAudit'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
     - repository: PesterWrapper
       type: git
       name: 'IaC-PowerShell-PesterWrapper'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
     - repository: ReadMeAnalyzer
       type: git
       name: 'IaC-PowerShell-ReadMeAnalyzer'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
 
 jobs:

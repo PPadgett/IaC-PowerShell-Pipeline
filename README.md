@@ -42,7 +42,7 @@ Before you begin, make sure you have the following:
    - `IaC-Pester-AssertionAudit`
    - `IaC-PowerShell-PesterWrapper`
    - `IaC-PowerShell-ReadMeAnalyzer`
-4. **Service Connection**: A service connection in Azure DevOps named `PSAutomationHub` with access to the necessary repositories.
+4. **Service Connection**: A service connection in Azure DevOps named `NameGoesHere` with access to the necessary repositories.
 
 ### Step 1: Add the Pipeline to Your Repository
 
@@ -91,7 +91,7 @@ By default, the pipeline scripts are configured with the `-BypassError` paramete
 
 ### Step 4: Verify Repository Access
 
-Ensure that the `PSAutomationHub` service connection has access to all the repositories specified in the `resources` section of the pipeline YAML.
+Ensure that the `NameGoesHere` service connection has access to all the repositories specified in the `resources` section of the pipeline YAML.
 
 ### Step 5: Commit and Push Changes
 
@@ -162,27 +162,27 @@ resources:
     - repository: SyntaxAnalyzer
       type: git
       name: 'IaC-PowerShell-SyntaxAnalyzer'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
     - repository: PSScriptAnalyzerWrapper
       type: git
       name: 'IaC-PowerShell-PSScriptAnalyzerWrapper'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
     - repository: PesterTestsPs1Audit
       type: git
       name: 'IaC-Pester-AssertionAudit'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
     - repository: PesterWrapper
       type: git
       name: 'IaC-PowerShell-PesterWrapper'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
     - repository: ReadMeAnalyzer
       type: git
       name: 'IaC-PowerShell-ReadMeAnalyzer'
-      endpoint: PSAutomationHub
+      endpoint: NameGoesHere
       ref: refs/heads/main
 
 jobs:
@@ -409,7 +409,7 @@ If your scripts are located in different paths or require different arguments, u
 
 If you encounter issues when running the pipeline:
 
-- **Check Repository Access**: Ensure the `PSAutomationHub` service connection has the necessary permissions.
+- **Check Repository Access**: Ensure the `NameGoesHere` service connection has the necessary permissions.
 - **Verify Script Paths**: Make sure the paths to the scripts in the PowerShell tasks are correct.
 - **Review Logs**: Examine the logs in the pipeline run to identify any errors.
 - **Module and Tool Installation**: Ensure that required modules and tools are installed successfully during the pipeline execution.
